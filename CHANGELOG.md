@@ -2,6 +2,12 @@
 
 All notable changes to X: Hide Quote Posts are documented here.
 
+## 1.7.0 — 2026-11-05
+
+- Removes the "Who to follow" block from the Home feed, on both tabs. The sidebar box is unchanged, and the quote icon doesn't affect it.
+- J / K and Tab skip the removed block, so it doesn't leave invisible stops.
+- J / K also press past a stop X can't focus right after a hidden post, instead of stalling there.
+
 ## 1.6.0 — 2026-11-05
 
 - Changed the placeholder to a slim 20 px line in X's own font. It was 52 px and rendered in Times New Roman.

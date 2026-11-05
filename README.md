@@ -2,11 +2,11 @@
 
 # X: Hide Quote Posts
 
-Hide posts that quote someone else in X/Twitter's **For You** feed.
+Hide posts that quote someone else in X/Twitter's **For You** feed, plus the "Who to follow" block in your Home feed.
 
 [![Install userscript](https://img.shields.io/badge/Install-userscript-2f81f7?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/roko-tech/x-hide-quote-posts/main/x-hide-quote-posts.user.js)
 
-[![Version](https://img.shields.io/badge/version-1.6.0-8b5cf6)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.0-8b5cf6)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 [![Test](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml/badge.svg)](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml)
 
@@ -17,8 +17,9 @@ Hide posts that quote someone else in X/Twitter's **For You** feed.
 - Collapses quote posts of other people's posts in **For You** to a slim "Quote post hidden" line.
 - Keeps original posts, reposts, self-quotes, and direct video-link embeds visible.
 - Leaves **Following**, profiles, search, and post pages untouched.
+- Removes the "Who to follow" block from the Home feed, on both tabs. The sidebar box stays.
 - Adds a toggle icon next to the **For you** / **Following** tabs that applies to every open X tab.
-- Makes **J** / **K** and **Tab** skip hidden posts.
+- Makes **J** / **K** and **Tab** skip hidden posts and the removed block.
 
 ## Install
 
@@ -37,9 +38,9 @@ Open the **For you** tab on [x.com/home](https://x.com/home). The quote icon in 
 | Blue, with a slash | Quote posts are hidden | Show them |
 | Grey | Quote posts are shown | Hide them |
 
-The icon only appears on **For you**. Your choice is remembered across reloads, and other open X tabs switch with it.
+The icon only appears on **For you**. Your choice is remembered across reloads, and other open X tabs switch with it. It controls quote posts only: the "Who to follow" block is always removed from the Home feed.
 
-**J** / **K** skip hidden posts: when X lands on one, the script repeats the same key so X moves on to the next visible post. **Tab** and **Shift+Tab** skip them too.
+**J** / **K** skip hidden posts and the removed block: when X lands on one, the script repeats the same key so X moves on to the next visible post. **Tab** and **Shift+Tab** skip them too. Going up past the block, X itself needs one extra **K** press, with or without the script.
 
 ## What counts as a quote post
 
@@ -49,6 +50,10 @@ A post is hidden when it embeds a quote card or status link from a **different**
 - **Direct video embeds**, where an explicit `/video/` link or X's `/i/status/…` link sits inside the video player without a quote card. Once recognized, the post stays visible while X swaps the player DOM on hover.
 
 Hidden posts keep a fixed 20 px height, and the script never changes the scroll position, so scrolling stays stable in both directions.
+
+## How "Who to follow" is found
+
+X shows the block as separate feed rows: a heading row, then one row per suggested account. The script collapses every Home feed row that holds an account card, plus the row just before the first one, so it works in any interface language. Only the timeline column is affected.
 
 ## Privacy
 

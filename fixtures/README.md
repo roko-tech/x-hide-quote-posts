@@ -11,4 +11,6 @@ Most files are captured as-is. These were made by editing a captured file to cov
 | `video-embed-hovered.html` | `video-embed-status-link.html` | Same link, moved out of the player as happens on hover |
 | `pending.html` | `cross-quote.html` | Timestamp permalink removed, as before X finishes rendering |
 
+`who-to-follow.html` holds the timeline rows of a real "Who to follow" block, captured the same way, between two simplified posts. The `id` attributes label the rows for the tests and are not X markup.
+
 When X changes its markup, capture fresh copies the same way and rerun `npm test`.

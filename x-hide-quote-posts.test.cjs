@@ -10,7 +10,8 @@ const {
     authorFromStatusHref,
     classifyPost,
     shouldHidePost,
-    isForYouSelection
+    isForYouSelection,
+    WHO_TO_FOLLOW_ROW_SELECTOR
 } = require('./x-hide-quote-posts.user.js');
 
 const userscriptSource = readFileSync(require.resolve('./x-hide-quote-posts.user.js'), 'utf8');
@@ -97,6 +98,32 @@ test('hides only cross-author quotes', () => {
         assert.equal(shouldHidePost({ postId: '1', kind }, new Set()), false, kind);
     }
     assert.equal(shouldHidePost({ postId: '1', kind: 'quote' }, new Set()), true);
+});
+
+test('hides only the heading and account rows of a feed "Who to follow" block', () => {
+    const html = readFileSync(path.join(__dirname, 'fixtures', 'who-to-follow.html'), 'utf8');
+    const { document } = parseHTML(`<!doctype html><html><body>${html}</body></html>`);
+    const hiddenRows = [...document.querySelectorAll(WHO_TO_FOLLOW_ROW_SELECTOR)].map((row) => row.id);
+
+    assert.deepEqual(hiddenRows, ['heading', 'account-1', 'account-2', 'account-3']);
+});
+
+test('leaves account rows outside the timeline column alone', () => {
+    const { document } = parseHTML('<!doctype html><html><body><div data-testid="sidebarColumn">'
+        + '<div data-testid="cellInnerDiv"><h2 role="heading"></h2></div>'
+        + '<div data-testid="cellInnerDiv"><button data-testid="UserCell"></button></div>'
+        + '</div></body></html>');
+
+    assert.equal(document.querySelectorAll(WHO_TO_FOLLOW_ROW_SELECTOR).length, 0);
+});
+
+test('collapses "Who to follow" rows only on the Home feed, keeping them focusable for J/K', () => {
+    assert.match(
+        userscriptSource,
+        /html\.\$\{HOME_FEED_CLASS\} \$\{WHO_TO_FOLLOW_ROW_SELECTOR\} \{\s*height: 0 !important;\s*overflow: hidden !important;/
+    );
+    assert.doesNotMatch(userscriptSource, /\$\{WHO_TO_FOLLOW_ROW_SELECTOR\} \{\s*display: none/);
+    assert.match(userscriptSource, /classList\.toggle\(HOME_FEED_CLASS, location\.pathname === '\/home'\)/);
 });
 
 test('uses one fixed compact height in both scroll directions', () => {

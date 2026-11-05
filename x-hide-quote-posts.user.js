@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         X: Hide Quote Posts
 // @namespace    https://github.com/roko-tech
-// @version      1.6.0
-// @description  Hides cross-author quote cards in For You while keeping Following, self-quotes, and direct video-link embeds visible.
+// @version      1.7.0
+// @description  Hides cross-author quote posts in For You and the "Who to follow" block in the Home feed, keeping self-quotes and direct video-link embeds visible.
 // @author       roko-tech
 // @license      MIT
 // @homepageURL  https://github.com/roko-tech/x-hide-quote-posts
@@ -25,10 +25,14 @@
     const AVATAR_SELECTOR = '[data-testid^="UserAvatar-Container-"]';
     const VIDEO_SELECTOR = '[data-testid="videoComponent"], [data-testid="videoPlayer"], video[aria-label="Embedded video"], button[aria-label^="Play Video"], a[href*="/video/"]';
     const AVATAR_PREFIX = 'UserAvatar-Container-';
+    // The feed shows "Who to follow" as separate timeline rows: a heading row, then one row per suggested account.
+    const WHO_TO_FOLLOW_ROW_SELECTOR = '[data-testid="primaryColumn"] [data-testid="cellInnerDiv"]'
+        + ':is(:has([data-testid="UserCell"]), :has(+ [data-testid="cellInnerDiv"] [data-testid="UserCell"]))';
     // X rewrites a post's class attribute when it re-renders (on focus, for example), so hidden posts are marked
     // with an attribute X never touches.
     const HIDDEN_ATTR = 'data-x-hide-quote-posts-hidden';
     const FILTER_ACTIVE_CLASS = 'x-hide-quote-posts-active';
+    const HOME_FEED_CLASS = 'x-hide-quote-posts-home';
     const TOGGLE_ID = 'x-hide-quote-posts-toggle';
     const STORAGE_KEY = 'x-hide-quote-posts-enabled';
     const J_CHAR_CODE = 106;
@@ -105,7 +109,8 @@
             authorFromStatusHref,
             classifyPost,
             shouldHidePost,
-            isForYouSelection
+            isForYouSelection,
+            WHO_TO_FOLLOW_ROW_SELECTOR
         };
     }
     if (typeof document === 'undefined') return;
@@ -136,6 +141,11 @@
             inset: 0;
             justify-content: center;
             position: absolute;
+        }
+        /* Collapsed rather than display: none, so X's J/K can still focus these rows and the script can skip them. */
+        html.${HOME_FEED_CLASS} ${WHO_TO_FOLLOW_ROW_SELECTOR} {
+            height: 0 !important;
+            overflow: hidden !important;
         }
         #${TOGGLE_ID} {
             align-items: center;
@@ -195,6 +205,7 @@
         const isForYou = isForYouSelection(location.pathname, selectedTabIndex);
         filterActive = filterEnabled && isForYou;
         document.documentElement.classList.toggle(FILTER_ACTIVE_CLASS, filterActive);
+        document.documentElement.classList.toggle(HOME_FEED_CLASS, location.pathname === '/home');
         toggleButton.hidden = !isForYou;
     }
 
@@ -217,40 +228,47 @@
     updateFilterContext();
 
     // X moves between posts on the j/k keypress and tracks the current post itself,
-    // so when it lands on a hidden post, repeat the same keypress instead of moving focus.
+    // so when it lands on a hidden post or row, repeat the same keypress instead of moving focus.
     let navCharCode = 0;
     document.addEventListener('keydown', (event) => {
         navCharCode = 0;
-        if (event.key !== 'Tab' || !filterActive) return;
+        if (event.key !== 'Tab') return;
 
-        // Tab would stop on collapsed posts, but X's J/K refuse to move onto a post with tabindex -1,
-        // so they leave the tab order only while this Tab press moves focus.
-        const collapsedPosts = document.querySelectorAll(`${POST_SELECTOR}[${HIDDEN_ATTR}]`);
+        // Tab would stop on collapsed posts and rows, but X's J/K refuse to move onto anything unfocusable,
+        // so they leave the tab order only while this Tab press moves focus. A collapsed post's only
+        // focusable element is the post itself; a row holds links and buttons, so the whole row goes inert.
+        const collapsedPosts = filterActive ? document.querySelectorAll(`${POST_SELECTOR}[${HIDDEN_ATTR}]`) : [];
+        const collapsedRows = Array.from(document.querySelectorAll(`html.${HOME_FEED_CLASS} ${WHO_TO_FOLLOW_ROW_SELECTOR}`))
+            .filter((row) => !row.contains(document.activeElement));
         for (const post of collapsedPosts) post.tabIndex = -1;
+        for (const row of collapsedRows) row.inert = true;
         setTimeout(() => {
             for (const post of collapsedPosts) post.tabIndex = 0;
+            for (const row of collapsedRows) row.inert = false;
         });
     }, true);
     document.addEventListener('keypress', (event) => {
         navCharCode = event.charCode === J_CHAR_CODE || event.charCode === K_CHAR_CODE ? event.charCode : 0;
     }, true);
     document.addEventListener('focusin', (event) => {
-        const post = event.target;
-        if (!navCharCode
-            || !filterActive
-            || !post.matches(`${POST_SELECTOR}[${HIDDEN_ATTR}]`)) return;
+        const target = event.target;
+        const collapsed = (filterActive && target.matches(`${POST_SELECTOR}[${HIDDEN_ATTR}]`))
+            || target.closest(`html.${HOME_FEED_CLASS} ${WHO_TO_FOLLOW_ROW_SELECTOR}`);
+        if (!navCharCode || !collapsed) return;
 
         const charCode = navCharCode;
+        // X also counts a few unfocusable rows as stops, so press again while focus has not moved.
         setTimeout(() => {
-            if (document.activeElement !== post) return;
-            post.dispatchEvent(new KeyboardEvent('keypress', {
-                key: String.fromCharCode(charCode),
-                charCode,
-                keyCode: charCode,
-                which: charCode,
-                bubbles: true,
-                cancelable: true
-            }));
+            for (let tries = 0; tries < 3 && document.activeElement === target; tries++) {
+                target.dispatchEvent(new KeyboardEvent('keypress', {
+                    key: String.fromCharCode(charCode),
+                    charCode,
+                    keyCode: charCode,
+                    which: charCode,
+                    bubbles: true,
+                    cancelable: true
+                }));
+            }
         });
     });
 
