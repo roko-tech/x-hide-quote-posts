@@ -3,54 +3,31 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
+const path = require('node:path');
+const { parseHTML } = require('linkedom');
 const {
     statusIdFromHref,
     authorFromStatusHref,
-    isQuotePost,
+    classifyPost,
+    shouldHidePost,
     isForYouSelection
 } = require('./x-hide-quote-posts.user.js');
 
 const userscriptSource = readFileSync(require.resolve('./x-hide-quote-posts.user.js'), 'utf8');
 
-function link(href, insideVideo = false) {
-    return {
-        getAttribute: (name) => name === 'href' ? href : null,
-        closest: (selector) => insideVideo && selector.includes('videoComponent') ? {} : null
-    };
+function parsePost(html) {
+    const { document } = parseHTML(`<!doctype html><html><body>${html}</body></html>`);
+    return document.querySelector('article[data-testid="tweet"]');
 }
 
-function avatar(author) {
-    return { getAttribute: (name) => name === 'data-testid' ? `UserAvatar-Container-${author}` : null };
+function fixture(name) {
+    return parsePost(readFileSync(path.join(__dirname, 'fixtures', `${name}.html`), 'utf8'));
 }
 
-function quoteCard(author, hasVideo) {
-    return {
-        querySelector: (selector) => selector.includes('UserAvatar-Container')
-            ? avatar(author)
-            : hasVideo ? {} : null
-    };
-}
-
-function post({
-    outerHref,
-    hrefs = [],
-    quotedAuthors = [],
-    quotedVideo = false,
-    embeddedVideoHref = null,
-    outerAvatarAuthor = null
-}) {
-    return {
-        querySelector: (selector) => {
-            if (selector === 'time' && outerHref) return { closest: () => link(outerHref) };
-            if (selector.startsWith('[data-testid="Tweet-User-Avatar"]') && outerAvatarAuthor) {
-                return avatar(outerAvatarAuthor);
-            }
-            return null;
-        },
-        querySelectorAll: (selector) => selector.startsWith('a[href')
-            ? hrefs.map((href) => link(href, href === embeddedVideoHref))
-            : quotedAuthors.map((author) => quoteCard(author, quotedVideo))
-    };
+// An original post by alice with extra markup appended, for link-only cases not seen live.
+function originalWith(extraHtml) {
+    const html = readFileSync(path.join(__dirname, 'fixtures', 'original.html'), 'utf8');
+    return parsePost(html.replace('</article>', `${extraHtml}</article>`));
 }
 
 test('extracts post IDs from relative and absolute status URLs', () => {
@@ -62,123 +39,85 @@ test('extracts post IDs from relative and absolute status URLs', () => {
 });
 
 test('keeps an original post whose links all belong to that post', () => {
-    const original = post({
-        outerHref: '/author/status/111',
-        hrefs: [
-            '/author/status/111',
-            '/author/status/111/photo/1',
-            '/author/status/111/analytics'
-        ]
-    });
-
-    assert.equal(isQuotePost(original), false);
+    assert.deepEqual(classifyPost(fixture('original')), { postId: '1000', kind: 'original' });
 });
 
-test('hides a cross-author quote that has a status link', () => {
-    const quote = post({
-        outerHref: '/commenter/status/111',
-        hrefs: ['/commenter/status/111', '/quoted/status/222']
-    });
-
-    assert.equal(isQuotePost(quote), true);
+test('hides a cross-author quote card', () => {
+    assert.equal(classifyPost(fixture('cross-quote')).kind, 'quote');
 });
 
-test('hides a cross-author quote card that has no status link', () => {
-    const quote = post({
-        outerHref: '/commenter/status/111',
-        hrefs: ['/commenter/status/111'],
-        quotedAuthors: ['quoted']
-    });
-
-    assert.equal(isQuotePost(quote), true);
+test('hides a quote card that contains a video', () => {
+    assert.equal(classifyPost(fixture('video-quote')).kind, 'quote');
 });
 
-test('keeps a self-quote card visible', () => {
-    const selfQuote = post({
-        outerHref: '/Author/status/111',
-        hrefs: ['/Author/status/111'],
-        quotedAuthors: ['author']
-    });
-
-    assert.equal(isQuotePost(selfQuote), false);
+test('hides a quote of a post that itself quotes someone else', () => {
+    assert.equal(classifyPost(fixture('nested-quote')).kind, 'quote');
 });
 
-test('keeps a self-quote that uses status links visible', () => {
-    const selfQuote = post({
-        outerHref: '/author/status/111',
-        hrefs: ['/author/status/111', '/author/status/222']
-    });
-
-    assert.equal(isQuotePost(selfQuote), false);
+test('keeps self-quotes visible, with or without media', () => {
+    assert.equal(classifyPost(fixture('self-quote')).kind, 'self-quote');
+    assert.equal(classifyPost(fixture('self-quote-with-media')).kind, 'self-quote');
 });
 
-test('hides a normal quote card that contains a video', () => {
-    const videoQuote = post({
-        outerHref: '/commenter/status/111',
-        hrefs: ['/commenter/status/111'],
-        quotedAuthors: ['videoauthor'],
-        quotedVideo: true
-    });
-
-    assert.equal(isQuotePost(videoQuote), true);
+test('ignores the nested quote inside a self-quote', () => {
+    assert.equal(classifyPost(fixture('nested-self-quote')).kind, 'self-quote');
 });
 
-test('keeps a direct video embed exempt after hover replaces its video DOM', () => {
-    const videoExemptPostIds = new Set();
-    const embeddedVideoHref = '/i/status/222';
-    const idleVideoEmbed = post({
-        outerHref: '/commenter/status/111',
-        hrefs: ['/commenter/status/111', embeddedVideoHref],
-        embeddedVideoHref
-    });
-    const hoveredVideoEmbed = post({
-        outerHref: '/commenter/status/111',
-        hrefs: ['/commenter/status/111', embeddedVideoHref]
-    });
-
-    assert.equal(isQuotePost(idleVideoEmbed, videoExemptPostIds), false);
-    assert.deepEqual([...videoExemptPostIds], ['111']);
-    assert.equal(isQuotePost(hoveredVideoEmbed, videoExemptPostIds), false);
+test('treats a plain video without a foreign status link as an original post', () => {
+    assert.equal(classifyPost(fixture('video-embed')).kind, 'original');
 });
 
-test('keeps a quoted video status link visible', () => {
-    const videoQuote = post({
-        outerHref: '/commenter/status/111',
-        hrefs: ['/commenter/status/111', '/videoauthor/status/222/video/1']
-    });
-
-    assert.equal(isQuotePost(videoQuote), false);
+test('treats a status link inside the video player as a direct video embed', () => {
+    assert.equal(classifyPost(fixture('video-embed-status-link')).kind, 'video-embed');
 });
 
-test('keeps a generic quoted status link inside an embedded-video player visible', () => {
-    const embeddedVideoHref = '/i/status/222';
-    const videoQuote = post({
-        outerHref: '/commenter/status/111',
-        hrefs: ['/commenter/status/111', embeddedVideoHref],
-        embeddedVideoHref
-    });
+test('keeps a direct video embed visible after hover replaces its player DOM', () => {
+    const videoEmbedPostIds = new Set();
+    const idle = classifyPost(fixture('video-embed-status-link'));
+    const hovered = classifyPost(fixture('video-embed-hovered'));
 
-    assert.equal(isQuotePost(videoQuote), false);
+    assert.equal(shouldHidePost(idle, videoEmbedPostIds), false);
+    assert.deepEqual([...videoEmbedPostIds], ['1000']);
+    assert.equal(hovered.kind, 'quote');
+    assert.equal(shouldHidePost(hovered, videoEmbedPostIds), false);
 });
 
-test('waits for the outer post permalink before deciding', () => {
-    assert.equal(isQuotePost(post({
-        outerHref: null,
-        hrefs: ['/quoted/status/222'],
-        quotedAuthors: ['quoted']
-    })), false);
+test('classifies link-only quotes by the linked author', () => {
+    assert.equal(classifyPost(originalWith('<a href="/bob/status/2000"></a>')).kind, 'quote');
+    assert.equal(classifyPost(originalWith('<a href="/alice/status/2000"></a>')).kind, 'self-quote');
+    assert.equal(classifyPost(originalWith('<a href="/bob/status/2000/video/1"></a>')).kind, 'video-embed');
 });
 
-test('uses one consistent compact height in both scroll directions', () => {
+test('waits for the post permalink before deciding', () => {
+    assert.deepEqual(classifyPost(fixture('pending')), { postId: null, kind: 'pending' });
+});
+
+test('hides only cross-author quotes', () => {
+    for (const kind of ['pending', 'original', 'self-quote', 'video-embed']) {
+        assert.equal(shouldHidePost({ postId: '1', kind }, new Set()), false, kind);
+    }
+    assert.equal(shouldHidePost({ postId: '1', kind: 'quote' }, new Set()), true);
+});
+
+test('uses one fixed compact height in both scroll directions', () => {
     assert.match(
         userscriptSource,
-        /html\.\$\{FILTER_ACTIVE_CLASS\} \.\$\{HIDDEN_CLASS\} \{[\s\S]*?height: 52px !important;/
+        /html\.\$\{FILTER_ACTIVE_CLASS\} \[\$\{HIDDEN_ATTR\}\] \{[\s\S]*?height: 20px !important;/
     );
     assert.doesNotMatch(
         userscriptSource,
-        /html\.\$\{FILTER_ACTIVE_CLASS\} \.\$\{HIDDEN_CLASS\} \{ display: none/
+        /html\.\$\{FILTER_ACTIVE_CLASS\} \[\$\{HIDDEN_ATTR\}\] \{ display: none/
     );
     assert.doesNotMatch(userscriptSource, /window\.scroll(?:To|By)\(/);
+});
+
+test('renders the placeholder in X\'s font', () => {
+    assert.match(userscriptSource, /\[\$\{HIDDEN_ATTR\}\]::after \{[\s\S]*?font-family: TwitterChirp,/);
+});
+
+test('marks hidden posts with an attribute that survives X rewriting the class list', () => {
+    assert.doesNotMatch(userscriptSource, /classList\.(?:add|remove|toggle)\(HIDDEN/);
+    assert.match(userscriptSource, /post\.toggleAttribute\(HIDDEN_ATTR, /);
 });
 
 test('lets the hidden attribute override the toggle display style', () => {

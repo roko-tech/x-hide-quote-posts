@@ -6,7 +6,7 @@ Hide posts that quote someone else in X/Twitter's **For You** feed.
 
 [![Install userscript](https://img.shields.io/badge/Install-userscript-2f81f7?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/roko-tech/x-hide-quote-posts/main/x-hide-quote-posts.user.js)
 
-[![Version](https://img.shields.io/badge/version-1.5.0-8b5cf6)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-8b5cf6)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 [![Test](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml/badge.svg)](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml)
 
@@ -14,11 +14,11 @@ Hide posts that quote someone else in X/Twitter's **For You** feed.
 
 ## Highlights
 
-- Collapses quote posts of other people's posts in **For You** to a small "Quote post hidden" placeholder.
+- Collapses quote posts of other people's posts in **For You** to a slim "Quote post hidden" line.
 - Keeps original posts, reposts, self-quotes, and direct video-link embeds visible.
 - Leaves **Following**, profiles, search, and post pages untouched.
-- Adds a toggle icon next to the **For you** / **Following** tabs.
-- Makes the **J** / **K** keyboard shortcuts skip hidden posts.
+- Adds a toggle icon next to the **For you** / **Following** tabs that applies to every open X tab.
+- Makes **J** / **K** and **Tab** skip hidden posts.
 
 ## Install
 
@@ -37,18 +37,18 @@ Open the **For you** tab on [x.com/home](https://x.com/home). The quote icon in 
 | Blue, with a slash | Quote posts are hidden | Show them |
 | Grey | Quote posts are shown | Hide them |
 
-The icon only appears on **For you**, and your choice is remembered across reloads.
+The icon only appears on **For you**. Your choice is remembered across reloads, and other open X tabs switch with it.
 
-**J** / **K** skip hidden posts: when X lands on one, the script repeats the same key so X moves on to the next visible post.
+**J** / **K** skip hidden posts: when X lands on one, the script repeats the same key so X moves on to the next visible post. **Tab** and **Shift+Tab** skip them too.
 
 ## What counts as a quote post
 
-A post is hidden when it embeds a quote card or status link from a **different** author. These stay visible:
+A post is hidden when it embeds a quote card or status link from a **different** author. Only the directly quoted post counts: if that post quotes someone else in turn, the inner quote is ignored. These stay visible:
 
 - **Self-quotes**, where the quoted post has the same author.
 - **Direct video embeds**, where an explicit `/video/` link or X's `/i/status/…` link sits inside the video player without a quote card. Once recognized, the post stays visible while X swaps the player DOM on hover.
 
-Hidden posts keep a fixed 52 px height, and the script never changes the scroll position, so scrolling stays stable in both directions.
+Hidden posts keep a fixed 20 px height, and the script never changes the scroll position, so scrolling stays stable in both directions.
 
 ## Privacy
 
@@ -58,15 +58,16 @@ The script runs entirely in the page. It makes no network requests, uses no user
 
 - It relies on X's page structure, which X changes without notice. If posts stop being hidden, check for an update or [open an issue](https://github.com/roko-tech/x-hide-quote-posts/issues).
 - The placeholder text is English only.
+- Quotes of deleted or unavailable posts stay visible, because they show no quoted author to compare.
 - Tested with Violentmonkey in Chrome. Other managers that support `@grant none` scripts should work but are untested.
 
 ## Development
 
-There is no build step. The root `.user.js` file is both the source and the installable script.
+There is no build step. The root `.user.js` file is both the source and the installable script, and it has no dependencies. The tests use [linkedom](https://github.com/WebReflection/linkedom) to run the detection code against trimmed copies of real X post markup in [`fixtures/`](fixtures/).
 
 ```sh
-node --check x-hide-quote-posts.user.js
-node --test x-hide-quote-posts.test.cjs
+npm ci
+npm test
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for reporting bugs and submitting changes.

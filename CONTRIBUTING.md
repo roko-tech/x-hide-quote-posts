@@ -13,13 +13,15 @@ Please avoid posting cookies, account credentials, or screenshots with private i
 
 ## Making a change
 
-Keep changes focused and preserve the single-file userscript design. There is no build step.
+Keep changes focused and preserve the single-file userscript design. There is no build step, and the userscript itself must stay dependency-free.
 
 Before submitting:
 
 ```sh
-node --check x-hide-quote-posts.user.js
-node --test x-hide-quote-posts.test.cjs
+npm ci
+npm test
 ```
 
-For changes to filtering, the toggle, or keyboard navigation, also test on a signed-in For You feed: confirm quote posts collapse, the icon toggles them, and J / K skip hidden posts in both directions.
+If a change depends on how X marks up posts, add or refresh a fixture in [`fixtures/`](fixtures/) as described in its README.
+
+For changes to filtering, the toggle, or keyboard navigation, also test on a signed-in For You feed: confirm quote posts collapse, the icon toggles them in every open tab, and J / K and Tab skip hidden posts in both directions.

@@ -1,0 +1,12 @@
+{
+  "name": "x-hide-quote-posts",
+  "private": true,
+  "description": "Development tooling for the X: Hide Quote Posts userscript. The userscript itself has no dependencies.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --check x-hide-quote-posts.user.js && node --test x-hide-quote-posts.test.cjs"
+  },
+  "devDependencies": {
+    "linkedom": "0.18.14"
+  }
+}
