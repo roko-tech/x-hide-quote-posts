@@ -7,6 +7,6 @@
     "test": "node --check x-hide-quote-posts.user.js && node --test x-hide-quote-posts.test.cjs"
   },
   "devDependencies": {
-    "linkedom": "0.18.14"
+    "linkedom": "0.18.15"
   }
 }
