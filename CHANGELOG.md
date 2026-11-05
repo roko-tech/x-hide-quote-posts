@@ -2,6 +2,12 @@
 
 All notable changes to X: Hide Quote Posts are documented here.
 
+## 1.8.0 — 2026-11-05
+
+- New eye icon (off by default) that hides posts you already scrolled past, on both Home tabs. Posts you scroll past are hidden completely from your next page load, so nothing moves while you scroll. They're remembered for 7 days, up to 5,000 posts.
+- J / K and Tab skip the hidden seen posts.
+- Both header icons now share one design; the quote icon looks the same as before.
+
 ## 1.7.0 — 2026-11-05
 
 - Removes the "Who to follow" block from the Home feed, on both tabs. The sidebar box is unchanged, and the quote icon doesn't affect it.

@@ -6,7 +6,7 @@ Hide posts that quote someone else in X/Twitter's **For You** feed, plus the "Wh
 
 [![Install userscript](https://img.shields.io/badge/Install-userscript-2f81f7?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/roko-tech/x-hide-quote-posts/main/x-hide-quote-posts.user.js)
 
-[![Version](https://img.shields.io/badge/version-1.7.0-8b5cf6)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.8.0-8b5cf6)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 [![Test](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml/badge.svg)](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml)
 
@@ -18,8 +18,9 @@ Hide posts that quote someone else in X/Twitter's **For You** feed, plus the "Wh
 - Keeps original posts, reposts, self-quotes, and direct video-link embeds visible.
 - Leaves **Following**, profiles, search, and post pages untouched.
 - Removes the "Who to follow" block from the Home feed, on both tabs. The sidebar box stays.
-- Adds a toggle icon next to the **For you** / **Following** tabs that applies to every open X tab.
-- Makes **J** / **K** and **Tab** skip hidden posts and the removed block.
+- Optionally hides posts you already scrolled past, from your next visit on.
+- Adds toggle icons next to the **For you** / **Following** tabs that apply to every open X tab.
+- Makes **J** / **K** and **Tab** skip everything that's hidden.
 
 ## Install
 
@@ -31,16 +32,22 @@ The userscript checks this repository for updates through its `@updateURL`.
 
 ## Usage
 
-Open the **For you** tab on [x.com/home](https://x.com/home). The quote icon in the timeline header toggles filtering:
+Open [x.com/home](https://x.com/home). Two icons in the timeline header, next to the tabs, control the filters. Each is blue with a slash while it hides something and grey while it doesn't.
 
-| Icon | Meaning | Click to |
-| --- | --- | --- |
-| Blue, with a slash | Quote posts are hidden | Show them |
-| Grey | Quote posts are shown | Hide them |
+| Icon | Hides | Shown on | Default |
+| --- | --- | --- | --- |
+| Quote marks | Quote posts of other people's posts | **For you** | On |
+| Eye | Posts you already scrolled past | **For you** and **Following** | Off |
 
-The icon only appears on **For you**. Your choice is remembered across reloads, and other open X tabs switch with it. It controls quote posts only: the "Who to follow" block is always removed from the Home feed.
+Your choices are remembered across reloads, and other open X tabs switch with them. The "Who to follow" block is always removed from the Home feed.
 
-**J** / **K** skip hidden posts and the removed block: when X lands on one, the script repeats the same key so X moves on to the next visible post. **Tab** and **Shift+Tab** skip them too. Going up past the block, X itself needs one extra **K** press, with or without the script.
+**J** / **K** skip everything that's hidden: when X lands on a hidden post, the script repeats the same key so X moves on to the next visible one. **Tab** and **Shift+Tab** skip them too. Going up past the removed "Who to follow" block, X itself needs one extra **K** press, with or without the script.
+
+## Hiding posts you've seen
+
+With the eye icon on, a post counts as seen once all of it has scrolled up past the top of the screen. Seen posts are hidden completely, with no placeholder, the next time you load the Home feed. Posts you scroll past stay where they are until then, so nothing jumps while you read, open a post, or go back.
+
+Seen posts are remembered for 7 days, up to the 5,000 most recent. A collapsed quote post doesn't count as seen, because you never saw its content. Turning the eye off shows them again and stops recording.
 
 ## What counts as a quote post
 
@@ -57,7 +64,13 @@ X shows the block as separate feed rows: a heading row, then one row per suggest
 
 ## Privacy
 
-The script runs entirely in the page. It makes no network requests, uses no userscript manager permissions (`@grant none`), and stores a single `localStorage` key, `x-hide-quote-posts-enabled`, for the toggle state.
+The script runs entirely in the page. It makes no network requests and uses no userscript manager permissions (`@grant none`). It stores everything in your browser's `localStorage`:
+
+| Key | Contents |
+| --- | --- |
+| `x-hide-quote-posts-enabled` | Quote icon on or off |
+| `x-hide-quote-posts-seen-enabled` | Eye icon on or off |
+| `x-hide-quote-posts-seen` | IDs of posts you scrolled past, with the time, for 7 days. Only recorded while the eye icon is on. |
 
 ## Limitations
 

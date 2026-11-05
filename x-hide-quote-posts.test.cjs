@@ -11,7 +11,10 @@ const {
     classifyPost,
     shouldHidePost,
     isForYouSelection,
-    WHO_TO_FOLLOW_ROW_SELECTOR
+    pruneSeenPosts,
+    parseSeenPosts,
+    WHO_TO_FOLLOW_ROW_SELECTOR,
+    SEEN_ROW_SELECTOR
 } = require('./x-hide-quote-posts.user.js');
 
 const userscriptSource = readFileSync(require.resolve('./x-hide-quote-posts.user.js'), 'utf8');
@@ -117,13 +120,55 @@ test('leaves account rows outside the timeline column alone', () => {
     assert.equal(document.querySelectorAll(WHO_TO_FOLLOW_ROW_SELECTOR).length, 0);
 });
 
-test('collapses "Who to follow" rows only on the Home feed, keeping them focusable for J/K', () => {
+test('collapses "Who to follow" and seen rows only on the Home feed, keeping them focusable for J/K', () => {
     assert.match(
         userscriptSource,
-        /html\.\$\{HOME_FEED_CLASS\} \$\{WHO_TO_FOLLOW_ROW_SELECTOR\} \{\s*height: 0 !important;\s*overflow: hidden !important;/
+        /COLLAPSED_ROW_SELECTOR = `html\.\$\{HOME_FEED_CLASS\} \$\{WHO_TO_FOLLOW_ROW_SELECTOR\}, html\.\$\{SEEN_ACTIVE_CLASS\} \$\{SEEN_ROW_SELECTOR\}`/
     );
-    assert.doesNotMatch(userscriptSource, /\$\{WHO_TO_FOLLOW_ROW_SELECTOR\} \{\s*display: none/);
-    assert.match(userscriptSource, /classList\.toggle\(HOME_FEED_CLASS, location\.pathname === '\/home'\)/);
+    assert.match(userscriptSource, /\$\{COLLAPSED_ROW_SELECTOR\} \{\s*height: 0 !important;\s*overflow: hidden !important;/);
+    assert.doesNotMatch(userscriptSource, /ROW_SELECTOR\} \{\s*display: none/);
+    assert.match(userscriptSource, /const onHomeFeed = location\.pathname === '\/home';/);
+    assert.match(userscriptSource, /seenActive = seenEnabled && onHomeFeed;/);
+});
+
+test('matches timeline rows holding a post seen on an earlier visit', () => {
+    const { document } = parseHTML('<!doctype html><html><body>'
+        + '<div data-testid="primaryColumn">'
+        + '<div data-testid="cellInnerDiv" id="seen"><article data-testid="tweet" data-x-hide-quote-posts-seen></article></div>'
+        + '<div data-testid="cellInnerDiv" id="new"><article data-testid="tweet"></article></div>'
+        + '</div>'
+        + '<div data-testid="sidebarColumn"><div data-testid="cellInnerDiv"><article data-x-hide-quote-posts-seen></article></div></div>'
+        + '</body></html>');
+
+    assert.deepEqual([...document.querySelectorAll(SEEN_ROW_SELECTOR)].map((row) => row.id), ['seen']);
+});
+
+test('keeps seen posts for 7 days and at most 5000, newest first', () => {
+    const day = 24 * 60 * 60 * 1000;
+    const now = 100 * day;
+    assert.deepEqual(
+        pruneSeenPosts({ fresh: now - day, edge: now - 7 * day, old: now - 8 * day, bad: 'x' }, now),
+        { fresh: now - day }
+    );
+
+    const many = Object.fromEntries(Array.from({ length: 5002 }, (_, i) => [`p${i}`, now - i]));
+    const kept = pruneSeenPosts(many, now);
+    assert.equal(Object.keys(kept).length, 5000);
+    assert.ok(!('p5000' in kept) && !('p5001' in kept));
+    assert.ok('p0' in kept);
+});
+
+test('treats a missing or corrupt seen-post list as empty', () => {
+    assert.deepEqual(parseSeenPosts(null), {});
+    assert.deepEqual(parseSeenPosts('not json'), {});
+    assert.deepEqual(parseSeenPosts('[1,2]'), {});
+    assert.deepEqual(parseSeenPosts('{"123":5}'), { 123: 5 });
+});
+
+test('only records posts once they are fully above the screen, and only when the option is on', () => {
+    assert.match(userscriptSource, /if \(isIntersecting \|\| boundingClientRect\.bottom > 0\) continue;/);
+    assert.match(userscriptSource, /if \(!seenActive \|\| !postId \|\| shownAsPlaceholder/);
+    assert.match(userscriptSource, /let seenEnabled = localStorage\.getItem\(SEEN_ENABLED_KEY\) === 'true';/);
 });
 
 test('uses one fixed compact height in both scroll directions', () => {
@@ -148,7 +193,7 @@ test('marks hidden posts with an attribute that survives X rewriting the class l
 });
 
 test('lets the hidden attribute override the toggle display style', () => {
-    assert.match(userscriptSource, /#\$\{TOGGLE_ID\}\[hidden\] \{ display: none; \}/);
+    assert.match(userscriptSource, /\.\$\{BUTTON_CLASS\}\[hidden\] \{ display: none; \}/);
 });
 
 test('activates filtering only for the first Home feed tab', () => {
