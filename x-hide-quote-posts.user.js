@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X: Hide Quote Posts
 // @namespace    https://github.com/roko-tech
-// @version      1.8.0
+// @version      1.9.0
 // @description  Hides cross-author quote posts in For You, the "Who to follow" block in the Home feed, and optionally posts you already scrolled past.
 // @author       roko-tech
 // @license      MIT
@@ -122,6 +122,22 @@
             .slice(0, SEEN_MAX_POSTS));
     }
 
+    // Lists the posts a timeline response shows. A repost counts as the post it shows; a quoted post doesn't count.
+    function timelinePostIds(response) {
+        const postIds = [];
+        const visit = (value) => {
+            if (!value || typeof value !== 'object') return;
+            if (value.rest_id && value.legacy && 'full_text' in value.legacy) {
+                const reposted = value.legacy.retweeted_status_result?.result;
+                postIds.push((reposted?.tweet ?? reposted)?.rest_id ?? value.rest_id);
+                return;
+            }
+            for (const child of Object.values(value)) visit(child);
+        };
+        visit(response);
+        return postIds;
+    }
+
     // A corrupt stored value must not stop the script, which runs before X's page loads.
     function parseSeenPosts(json) {
         try {
@@ -141,6 +157,7 @@
             isForYouSelection,
             pruneSeenPosts,
             parseSeenPosts,
+            timelinePostIds,
             WHO_TO_FOLLOW_ROW_SELECTOR,
             SEEN_ROW_SELECTOR
         };
@@ -358,6 +375,43 @@
         }
     }
 
+    // X sometimes sends a post again in a later page of the feed and moves it down to the new spot, so a
+    // post you already scrolled past shows up a second time. Reading X's own timeline responses (without
+    // changing them) shows which posts came back; those you had scrolled past are hidden like seen posts.
+    const deliveredPosts = new Set();
+    const repeatedPosts = new Set();
+
+    function onTimelineLoad() {
+        let response;
+        try {
+            response = JSON.parse(this.responseText);
+        } catch {
+            return;
+        }
+        let foundRepeat = false;
+        for (const postId of new Set(timelinePostIds(response))) {
+            if (deliveredPosts.has(postId) && Object.hasOwn(newlySeenPosts, postId) && !repeatedPosts.has(postId)) {
+                repeatedPosts.add(postId);
+                foundRepeat = true;
+            }
+            deliveredPosts.add(postId);
+        }
+        // X may have rendered the moved post already.
+        if (foundRepeat) for (const post of document.querySelectorAll(POST_SELECTOR)) queuePost(post);
+    }
+
+    const xhrPrototype = XMLHttpRequest.prototype;
+    const originalXhrOpen = xhrPrototype.open;
+    const originalXhrSend = xhrPrototype.send;
+    xhrPrototype.open = function (method, url) {
+        this.xHideQuotePostsTimeline = /\/(?:HomeTimeline|HomeLatestTimeline)\b/.test(String(url));
+        return originalXhrOpen.apply(this, arguments);
+    };
+    xhrPrototype.send = function () {
+        if (this.xHideQuotePostsTimeline) this.addEventListener('load', onTimelineLoad);
+        return originalXhrSend.apply(this, arguments);
+    };
+
     // A post counts as seen once all of it has scrolled up past the top of the screen.
     const seenObserver = new IntersectionObserver((entries) => {
         for (const { target: post, isIntersecting, boundingClientRect } of entries) {
@@ -384,7 +438,8 @@
         for (const post of pendingPosts) {
             const classification = classifyPost(post);
             post.toggleAttribute(HIDDEN_ATTR, shouldHidePost(classification, videoEmbedPostIds));
-            post.toggleAttribute(SEEN_ATTR, seenBeforeLoad.has(classification.postId));
+            post.toggleAttribute(SEEN_ATTR, seenBeforeLoad.has(classification.postId)
+                || repeatedPosts.has(classification.postId));
             if (!seenBeforeLoad.has(classification.postId) && !Object.hasOwn(newlySeenPosts, classification.postId)) {
                 seenObserver.observe(post);
             }

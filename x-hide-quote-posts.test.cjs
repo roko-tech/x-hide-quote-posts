@@ -13,6 +13,7 @@ const {
     isForYouSelection,
     pruneSeenPosts,
     parseSeenPosts,
+    timelinePostIds,
     WHO_TO_FOLLOW_ROW_SELECTOR,
     SEEN_ROW_SELECTOR
 } = require('./x-hide-quote-posts.user.js');
@@ -163,6 +164,22 @@ test('treats a missing or corrupt seen-post list as empty', () => {
     assert.deepEqual(parseSeenPosts('not json'), {});
     assert.deepEqual(parseSeenPosts('[1,2]'), {});
     assert.deepEqual(parseSeenPosts('{"123":5}'), { 123: 5 });
+});
+
+test('lists the posts a timeline response shows, counting a repost as the post it shows', () => {
+    const response = JSON.parse(readFileSync(path.join(__dirname, 'fixtures', 'home-timeline-page.json'), 'utf8'));
+
+    assert.deepEqual(timelinePostIds(response), ['3001', '3002', '3003', '3005']);
+    assert.deepEqual(timelinePostIds({}), []);
+});
+
+test('hides a post X sends again only if you already scrolled past it in this visit', () => {
+    assert.match(
+        userscriptSource,
+        /if \(deliveredPosts\.has\(postId\) && Object\.hasOwn\(newlySeenPosts, postId\) && !repeatedPosts\.has\(postId\)\)/
+    );
+    assert.match(userscriptSource, /seenBeforeLoad\.has\(classification\.postId\)\s*\|\| repeatedPosts\.has\(classification\.postId\)/);
+    assert.match(userscriptSource, /\/\\\/\(\?:HomeTimeline\|HomeLatestTimeline\)\\b\//);
 });
 
 test('only records posts once they are fully above the screen, and only when the option is on', () => {

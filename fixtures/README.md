@@ -13,4 +13,6 @@ Most files are captured as-is. These were made by editing a captured file to cov
 
 `who-to-follow.html` holds the timeline rows of a real "Who to follow" block, captured the same way, between two simplified posts. The `id` attributes label the rows for the tests and are not X markup.
 
+`home-timeline-page.json` is a hand-built, trimmed `HomeTimeline` response. The paths to plain posts, quoted posts, and posts in a `TweetWithVisibilityResults` wrapper match a real response from 2026-11-05. The repost path (`legacy.retweeted_status_result`) follows X's usual shape but wasn't in that capture.
+
 When X changes its markup, capture fresh copies the same way and rerun `npm test`.

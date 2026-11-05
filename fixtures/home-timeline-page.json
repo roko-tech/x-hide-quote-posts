@@ -1,0 +1,102 @@
+{
+  "data": {
+    "home": {
+      "home_timeline_urt": {
+        "instructions": [
+          {
+            "type": "TimelineAddEntries",
+            "entries": [
+              {
+                "entryId": "cursor-top-9000",
+                "sortIndex": "9000",
+                "content": { "entryType": "TimelineTimelineCursor", "value": "top", "cursorType": "Top" }
+              },
+              {
+                "entryId": "tweet-3001",
+                "sortIndex": "8999",
+                "content": {
+                  "entryType": "TimelineTimelineItem",
+                  "itemContent": {
+                    "itemType": "TimelineTweet",
+                    "tweet_results": {
+                      "result": {
+                        "__typename": "Tweet",
+                        "rest_id": "3001",
+                        "core": { "user_results": { "result": { "rest_id": "11", "legacy": { "screen_name": "alice" } } } },
+                        "legacy": { "full_text": "", "id_str": "3001" }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "tweet-3002",
+                "sortIndex": "8998",
+                "content": {
+                  "entryType": "TimelineTimelineItem",
+                  "itemContent": {
+                    "itemType": "TimelineTweet",
+                    "tweet_results": {
+                      "result": {
+                        "__typename": "Tweet",
+                        "rest_id": "3002",
+                        "legacy": { "full_text": "", "id_str": "3002", "is_quote_status": true },
+                        "quoted_status_result": {
+                          "result": { "__typename": "Tweet", "rest_id": "3999", "legacy": { "full_text": "", "id_str": "3999" } }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "tweet-3003",
+                "sortIndex": "8997",
+                "content": {
+                  "entryType": "TimelineTimelineItem",
+                  "itemContent": {
+                    "itemType": "TimelineTweet",
+                    "tweet_results": {
+                      "result": {
+                        "__typename": "TweetWithVisibilityResults",
+                        "tweet": { "rest_id": "3003", "legacy": { "full_text": "", "id_str": "3003" } }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "tweet-3004",
+                "sortIndex": "8996",
+                "content": {
+                  "entryType": "TimelineTimelineItem",
+                  "itemContent": {
+                    "itemType": "TimelineTweet",
+                    "tweet_results": {
+                      "result": {
+                        "__typename": "Tweet",
+                        "rest_id": "3004",
+                        "legacy": {
+                          "full_text": "",
+                          "id_str": "3004",
+                          "retweeted_status_result": {
+                            "result": { "__typename": "Tweet", "rest_id": "3005", "legacy": { "full_text": "", "id_str": "3005" } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "entryId": "cursor-bottom-8000",
+                "sortIndex": "8000",
+                "content": { "entryType": "TimelineTimelineCursor", "value": "bottom", "cursorType": "Bottom" }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

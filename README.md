@@ -6,7 +6,7 @@ Hide posts that quote someone else in X/Twitter's **For You** feed, plus the "Wh
 
 [![Install userscript](https://img.shields.io/badge/Install-userscript-2f81f7?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/roko-tech/x-hide-quote-posts/main/x-hide-quote-posts.user.js)
 
-[![Version](https://img.shields.io/badge/version-1.8.0-8b5cf6)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.9.0-8b5cf6)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 [![Test](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml/badge.svg)](https://github.com/roko-tech/x-hide-quote-posts/actions/workflows/test.yml)
 
@@ -49,6 +49,8 @@ With the eye icon on, a post counts as seen once all of it has scrolled up past 
 
 Seen posts are remembered for 7 days, up to the 5,000 most recent. A collapsed quote post doesn't count as seen, because you never saw its content. Turning the eye off shows them again and stops recording.
 
+**Repeats in the same visit.** X sometimes sends a post again a few minutes later and moves it further down the For You feed, so you meet it twice. With the eye icon on, a post X sends again after you already scrolled past it is hidden right away at its new spot. A post X sends again before you reached it stays visible. The script spots these by reading the timeline data X already loads into the page.
+
 ## What counts as a quote post
 
 A post is hidden when it embeds a quote card or status link from a **different** author. Only the directly quoted post counts: if that post quotes someone else in turn, the inner quote is ignored. These stay visible:
@@ -64,7 +66,7 @@ X shows the block as separate feed rows: a heading row, then one row per suggest
 
 ## Privacy
 
-The script runs entirely in the page. It makes no network requests and uses no userscript manager permissions (`@grant none`). It stores everything in your browser's `localStorage`:
+The script runs entirely in the page. It makes no network requests and uses no userscript manager permissions (`@grant none`). To spot repeated posts it reads X's own Home timeline responses as they arrive, without changing them or sending them anywhere. It stores everything in your browser's `localStorage`:
 
 | Key | Contents |
 | --- | --- |

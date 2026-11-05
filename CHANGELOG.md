@@ -2,6 +2,11 @@
 
 All notable changes to X: Hide Quote Posts are documented here.
 
+## 1.9.0 — 2026-11-05
+
+- With the eye icon on, a post X sends again after you already scrolled past it is hidden right away at its new spot, instead of showing a second time in the same visit. X does this by re-sending the same post in a later page of the For You feed.
+- To spot these, the script reads X's Home timeline responses in the page without changing them.
+
 ## 1.8.0 — 2026-11-05
 
 - New eye icon (off by default) that hides posts you already scrolled past, on both Home tabs. Posts you scroll past are hidden completely from your next page load, so nothing moves while you scroll. They're remembered for 7 days, up to 5,000 posts.
