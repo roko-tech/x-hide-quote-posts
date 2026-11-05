@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a post that is hidden or shown by mistake, or a toggle or keyboard problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Please do not include cookies, credentials, or private browser data.
+  - type: input
+    id: version
+    attributes:
+      label: Userscript version
+      placeholder: "1.5.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and userscript manager
+      placeholder: "Chrome 1xx with Violentmonkey 2.x"
+    validations:
+      required: true
+  - type: input
+    id: post
+    attributes:
+      label: Post URL
+      description: A public link to the post that was hidden or shown by mistake, if relevant.
+      placeholder: "https://x.com/user/status/123"
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include what you expected instead and whether the toggle icon was blue (hiding) or grey (showing).
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open…
+        2. Click…
+        3. Observe…
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Screenshots are welcome if they do not contain private information.

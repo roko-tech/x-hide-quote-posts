@@ -3,6 +3,12 @@
 // @namespace    https://github.com/roko-tech
 // @version      1.5.0
 // @description  Hides cross-author quote cards in For You while keeping Following, self-quotes, and direct video-link embeds visible.
+// @author       roko-tech
+// @license      MIT
+// @homepageURL  https://github.com/roko-tech/x-hide-quote-posts
+// @supportURL   https://github.com/roko-tech/x-hide-quote-posts/issues
+// @updateURL    https://raw.githubusercontent.com/roko-tech/x-hide-quote-posts/main/x-hide-quote-posts.user.js
+// @downloadURL  https://raw.githubusercontent.com/roko-tech/x-hide-quote-posts/main/x-hide-quote-posts.user.js
 // @match        https://x.com/*
 // @match        https://twitter.com/*
 // @run-at       document-start
